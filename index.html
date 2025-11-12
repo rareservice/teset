@@ -271,6 +271,45 @@
             opacity: 1;
             pointer-events: auto; 
         }
+        
+        /* NEW: Wishlist Heart Icon Style */
+        .wishlist-icon {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            padding: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .wishlist-icon:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.1);
+        }
+        
+        .wishlist-icon .ph-heart {
+            font-size: 1.5rem;
+            color: #9ca3af; /* gray-400 */
+        }
+        
+        /* Using ph-heart-fill when active (full red heart) */
+        .wishlist-icon.active .ph-heart-fill {
+            color: #ef4444; /* red-500 */
+            fill: #ef4444; /* Solid color for active state */
+        }
+
+        /* Ensure the correct icon is shown based on active state */
+        .wishlist-icon:not(.active) .ph-heart-fill {
+            display: none;
+        }
+        .wishlist-icon.active .ph-heart {
+            display: none;
+        }
+        
     </style>
 </head>
 <body class="bg-white">
@@ -293,7 +332,7 @@
             </a>
             <a href="#" id="sidebar-wishlist-link" class="flex items-center text-lg font-medium text-gray-700 hover:text-orange-600 dark:text-gray-300 dark:hover:text-orange-500">
                 <i class="ph ph-heart text-2xl mr-3"></i>
-                WhishList
+                Wishlist (<span id="sidebar-wishlist-count">0</span>)
             </a>
             <button id="sidebar-theme-toggle-btn" title="Toggle theme" class="w-full flex items-center justify-start text-lg font-medium text-gray-700 hover:text-orange-600 p-0 dark:text-gray-300 dark:hover:text-orange-500">
                 <i class="ph ph-circle-half text-2xl mr-3"></i>
@@ -335,9 +374,19 @@
                 <div class="flex items-center space-x-4">
                     <a href="dash.html" id="admin-link" class="text-gray-600 hover:text-orange-600 text-sm font-medium hidden">Admin Dashboard</a>
                     
+                    <a href="#" id="header-wishlist-link" class="relative text-gray-600 hover:text-orange-600 dark:text-gray-300 dark:hover:text-orange-500">
+                        <i class="ph ph-heart text-3xl"></i>
+                        <span id="header-wishlist-count" class="absolute top-0 right-0 -mt-1 -mr-1 px-1.5 py-0.5 bg-red-600 text-white text-xs font-bold rounded-full">0</span>
+                    </a>
+                    
                     <a href="#" id="cart-link" class="relative text-gray-600 hover:text-orange-600 dark:text-gray-300 dark:hover:text-orange-500">
                         <i class="ph ph-shopping-cart text-3xl"></i>
                         <span id="cart-item-count" class="absolute top-0 right-0 -mt-1 -mr-1 px-1.5 py-0.5 bg-orange-600 text-white text-xs font-bold rounded-full">0</span>
+                    </a>
+
+                    <a href="#" id="notification-link" class="relative text-gray-600 hover:text-orange-600 dark:text-gray-300 dark:hover:text-orange-500">
+                        <i class="ph ph-bell text-3xl"></i>
+                        <span id="notification-count" class="absolute top-0 right-0 -mt-1 -mr-1 px-1.5 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full hidden">0</span>
                     </a>
                     
                     <div id="auth-status-container" class="flex items-center space-x-2">
@@ -537,6 +586,23 @@
             </div>
         </div>
     </template>
+    
+    <template id="wishlist-view-template">
+        <div class="max-w-6xl mx-auto">
+            <button id="back-to-home-btn-wishlist" class="mb-8 flex items-center text-gray-600 hover:text-orange-600 font-medium transition-colors">
+                <i class="ph ph-arrow-left text-xl mr-2"></i> Back to Home
+            </button>
+            
+            <h1 class="text-3xl font-bold text-gray-800 mb-8 border-b pb-4">Your Wishlist (<span id="wishlist-count-title">0</span> Items)</h1>
+            
+            <div id="wishlist-products-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+                <p class="col-span-full text-center text-gray-500 p-8 border rounded-lg" id="wishlist-empty-message">
+                    Your wishlist is empty. Start adding your favorite items!
+                </p>
+            </div>
+        </div>
+    </template>
+    
     <template id="checkout-view-template">
         <div class="max-w-6xl mx-auto">
             <a href="#" id="return-to-cart-link" class="mb-4 inline-flex items-center text-gray-600 hover:text-orange-600 font-medium transition-colors">
@@ -584,7 +650,6 @@
                             </div>
                         </div>
 
-                        <!-- 📢 MANUAL PAYMENT METHOD SELECTION -->
                         <div>
                             <h2 class="text-xl font-semibold text-gray-800 mb-4">Choose Advance Payment Method</h2>
                             
@@ -618,7 +683,6 @@
                             </div>
                         </div>
                         
-                        <!-- 📢 SUPABASE PAYMENT PROOF UPLOAD SECTION -->
                         <div id="payment-proof-section">
                             <h2 class="text-xl font-semibold text-gray-800 mb-4 pt-4 border-t">Payment Proof Upload (Required)</h2>
                             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
@@ -627,21 +691,6 @@
                                 </label>
                                 <input type="file" id="payment-screenshot-file" required accept="image/png, image/jpeg" class="w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200">
                                 <p id="upload-status" class="text-sm text-blue-700 hidden">Ready to upload...</p>
-                            </div>
-                        </div>
-                        <!-- END PAYMENT PROOF UPLOAD SECTION -->
-
-                        <div id="whatsapp-instructions-section" class="space-y-4 pt-4 border-t">
-                            <h2 class="text-xl font-semibold text-gray-800">Verification Steps</h2>
-                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <h3 class="text-lg font-medium text-green-800">Final Action Recommended:</h3>
-                                <p class="text-green-700 mt-2">
-                                    Your order will be verified using the uploaded proof. For faster processing, please send your order ID to our WhatsApp number after placing the order.
-                                </p>
-                                <a href="https://wa.me/923430821414" target="_blank" class="mt-3 inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition-colors">
-                                    <i class="ph ph-whatsapp-logo text-xl mr-2"></i>
-                                    Send Order ID to WhatsApp (03430821414)
-                                </a>
                             </div>
                         </div>
                         <button type="submit" id="checkout-buy-now-btn" class="w-full py-4 bg-gray-900 text-white text-xl font-bold rounded-lg shadow-xl hover:bg-black transition-colors disabled:opacity-50 mt-6">
@@ -1154,78 +1203,6 @@
             </div>
         </div>
     </template>
-    <template id="about-view-template">
-        <div class="max-w-4xl mx-auto">
-            <button id="back-to-home-btn-about" class="mb-8 flex items-center text-gray-600 hover:text-orange-600 font-medium transition-colors">
-                <i class="ph ph-arrow-left text-xl mr-2"></i> Back to Home
-            </button>
-            
-            <h1 class="text-3xl font-bold text-gray-800 mb-8 border-b pb-4">About RareShop</h1>
-            
-            <div class="space-y-6 bg-white p-6 md:p-8 rounded-lg shadow-sm border border-gray-200 text-gray-700">
-                <p class="text-lg">Welcome to RareShop, your trusted online destination for original phones, laptops, computers, and smart TVs in Pakistan.</p>
-                <p>We are dedicated to providing top-quality electronics at competitive prices, with fast nationwide delivery and a smooth, secure shopping experience.</p>
-
-                <div class="policy-section">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-2">Who We Are</h2>
-                    <p>RareShop is a Pakistan-based online electronics store offering genuine and brand-new tech products from the world’s leading brands.</p>
-                    <p class="mt-2">Whether you are upgrading your smartphone, looking for a high-performance laptop, or enhancing your home entertainment setup, RareShop ensures authenticity and reliability in every purchase.</p>
-                </div>
-
-                <div class="policy-section">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-2">Our Mission</h2>
-                    <p class="mb-2">Our mission is to make modern technology accessible, affordable, and dependable for customers across Pakistan.</p>
-                    <p class="mb-2">We focus on providing:</p>
-                    <ul class="list-disc list-inside space-y-1 pl-2">
-                        <li>Competitive and transparent pricing</li>
-                        <li>Fast, reliable, and secure nationwide shipping</li>
-                        <li>Simple 30-day return and replacement policy for damaged or faulty products</li>
-                    </ul>
-                </div>
-
-                <div class="policy-section">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-2">What We Offer</h2>
-                    <ul class="list-disc list-inside space-y-1 pl-2">
-                        <li>Latest Smartphones and Accessories</li>
-                        <li>Branded Laptops and Desktop Computers</li>
-                        <li>LED and Smart TVs</li>
-                        <li>Computer Parts and Tech Gadgets</li>
-                    </ul>
-                    <p class="mt-2">Each product is inspected before dispatch to ensure it reaches you in perfect, scratch-free condition.</p>
-                </div>
-
-                <div class="policy-section">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-2">Why Choose RareShop</h2>
-                    <ul class="list-disc list-inside space-y-1 pl-2">
-                        <li>100% Original and Verified Products</li>
-                        <li>Nationwide Delivery via Trusted Couriers (TCS, M&P, Leopards, etc.)</li>
-                        <li>Secure Advance Payment System (Easypaisa, NayaPay, Digi++)</li>
-                        <li>30-Day Return Policy for Eligible Orders</li>
-                        <li>Professional and Friendly Customer Support</li>
-                    </ul>
-                </div>
-
-                <div class="policy-section">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-2">Contact Us</h2>
-                    <p>For any questions, product inquiries, or support requests, feel free to contact our team:</p>
-                    <ul class="list-none space-y-1 mt-2">
-                        <li class="flex items-center">
-                            <i class="ph ph-envelope text-xl mr-2 text-orange-600"></i>
-                            <a href="mailto:businessrareshop1@gmail.com" class="hover:text-orange-600 transition-colors">businessrareshop1@gmail.com</a>
-                        </li>
-                        <li class="flex items-center">
-                            <i class="ph ph-whatsapp-logo text-xl mr-2 text-orange-600"></i>
-                            <a href="https://wa.me/923430821414" class="hover:text-orange-600 transition-colors">+92 3430821414</a>
-                        </li>
-                        <li class="flex items-center">
-                            <i class="ph ph-clock text-xl mr-2 text-orange-600"></i>
-                            <span>Hours: Monday – Saturday, 10:00 AM – 8:00 PM</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </template>
     <footer class="bg-gray-900 text-gray-300 py-12">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -1390,6 +1367,13 @@
         }
         
         // --- Sidebar Logic ---
+        
+        /**
+         * Ensures body scroll is re-enabled, useful before any view change.
+         */
+        function resetBodyScroll() {
+            document.body.style.overflow = '';
+        }
 
         function toggleSidebar() {
             const isOpen = mobileSidebar.classList.contains('open');
@@ -1399,8 +1383,8 @@
             sidebarBackdrop.classList.toggle('open', !isOpen);
             sidebarBackdrop.classList.toggle('hidden', isOpen);
             
-            // Prevent body scrolling when the sidebar is open
-            document.body.style.overflow = isOpen ? 'hidden' : '';
+            // Control body scrolling: Disable if opening, enable if closing
+            document.body.style.overflow = !isOpen ? 'hidden' : '';
         }
 
         // Attach listeners
@@ -1469,9 +1453,9 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'; 
 
         // --- NEW SUPABASE CONFIG (USING YOUR CREDENTIALS) ---
-        const SUPABASE_URL = 'https://cgzltxzkjadeimnbavi.supabase.co'; 
+        const SUPABASE_URL = 'https://cgzxltxzkjadeimnbavi.supabase.co'; 
         // NOTE: Using the provided key below.
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnemx0eHpramFkZWltbmJhdmkiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcwNzQxODU2NiwiZXhwIjoxODIzMDk0NTY2fQ.eyjmb3JtYXRpYmR1cGxpY2F0ZSI6Im5vIiwiYW5vbiI6InB1YmxpYyJ9';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnenhsdHh6a2phZGVpbW5iYXZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NjYxMDMsImV4cCI6MjA3ODM0MjEwM30.ozAbQQX7fixrXsxAYAXm1BNBR5_pHmv-t_6OL5_rc1s';
         const BUCKET_NAME = 'payment-proofs';
         let supabase;
 
@@ -1511,6 +1495,7 @@
         let currentCategory = ''; 
         let currentPage = 1; 
         let cartItems = {}; 
+        let wishlistItems = {}; // ADDED: Wishlist State
         
         const categoryItemsPerPage = 10; 
 
@@ -1528,6 +1513,10 @@
         const mainContentContainer = document.getElementById('main-content-container');
         const userIdDisplay = document.getElementById('user-id-display');
         const cartItemCountEl = document.getElementById('cart-item-count');
+        
+        // ADDED: Wishlist Count Elements
+        const headerWishlistCountEl = document.getElementById('header-wishlist-count');
+        const sidebarWishlistCountEl = document.getElementById('sidebar-wishlist-count');
         
         const authModal = document.getElementById('authModal');
         const authModalCloseBtn = document.getElementById('authModalCloseBtn');
@@ -1548,6 +1537,7 @@
         const BANNERS_COLLECTION_PATH = `artifacts/${appId}/public/data/banners`;
         const ORDERS_COLLECTION_PATH = `artifacts/${appId}/public/data/orders`; 
         const CART_COLLECTION_PATH = (uid) => `artifacts/${appId}/users/${uid}/cart`; 
+        const WISHLIST_COLLECTION_PATH = (uid) => `artifacts/${appId}/users/${uid}/wishlist`; // ADDED Path
         const CURRENCY_SYMBOL = 'Rs.'; 
 
 
@@ -1603,12 +1593,14 @@
         }
 
 
-        // --- Order Tracking Logic (NEW) ---
+        // --- Order Tracking Logic ---
 
         /**
          * Renders the main order tracking page (list view).
          */
         function showTrackOrderView() {
+            resetBodyScroll(); // Re-enable scroll when changing views
+            
             if (!loggedInUser || !loggedInUser.uid) {
                 showModal("Login Required", "Please log in to view and track your orders.");
                 const isOpen = mobileSidebar.classList.contains('open');
@@ -1702,6 +1694,7 @@
          * Renders the specific detail page for a single order.
          */
         function showOrderDetailView(order) {
+            resetBodyScroll(); // Re-enable scroll when changing views
             clearListeners();
             appState = 'order-detail';
 
@@ -1778,6 +1771,7 @@
                         detailStatusEl.textContent = updatedOrder.status;
                         
                         detailStatusEl.classList.remove('text-red-600', 'text-green-600', 'text-blue-600', 'text-yellow-600');
+
                          if (updatedOrder.status.includes('Pending')) {
                             detailStatusEl.classList.add('text-yellow-600');
                         } else if (updatedOrder.status.includes('Confirmed') || updatedOrder.status.includes('Shipped') || updatedOrder.status.includes('Delivered')) {
@@ -1793,8 +1787,203 @@
 
             productListeners.push(unsubscribe);
         }
+        
+        // --- ADDED: Wishlist Logic ---
+        
+        /**
+         * Attaches a real-time listener to the user's wishlist in Firestore.
+         */
+        function listenToWishlist() {
+            const currentUid = loggedInUser && loggedInUser.uid ? loggedInUser.uid : userId;
 
-        // --- Cart Logic (UPDATED) ---
+            if (!db || !currentUid) {
+                console.warn("Firestore or User ID not available for wishlist listener.");
+                return;
+            }
+            
+            const oldWishlistListener = productListeners.find(l => l.isWishlistListener);
+            if (oldWishlistListener) {
+                oldWishlistListener();
+                productListeners = productListeners.filter(l => l !== oldWishlistListener);
+            }
+
+            const q = collection(db, WISHLIST_COLLECTION_PATH(currentUid));
+            
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                let newWishlistItems = {};
+                
+                snapshot.forEach(doc => {
+                    const item = { id: doc.id, ...doc.data() };
+                    newWishlistItems[item.id] = item;
+                });
+                
+                wishlistItems = newWishlistItems; 
+                const count = Object.keys(wishlistItems).length;
+                headerWishlistCountEl.textContent = count; 
+                sidebarWishlistCountEl.textContent = count; 
+
+                // Re-render if on a view that displays products (Home, Listing, Category)
+                if (appState === 'home' || appState === 'listing' || appState === 'category' || appState === 'detail') {
+                     // Minor re-render optimization: don't re-fetch everything, just re-render the heart status on existing product cards
+                     updateAllWishlistIcons();
+                }
+
+                if (appState === 'wishlist') {
+                    renderWishlistItems(); 
+                }
+
+            }, (error) => {
+                console.error("Error listening to wishlist:", error);
+                headerWishlistCountEl.textContent = 'E'; 
+                sidebarWishlistCountEl.textContent = 'E';
+                // Show modal only if user is logged in
+                if (loggedInUser && loggedInUser.email) {
+                    showModal("Wishlist Error", "Failed to load wishlist items in real-time.");
+                }
+            });
+            
+            unsubscribe.isWishlistListener = true;
+            productListeners.push(unsubscribe);
+        }
+        
+        /**
+         * Toggles a product's presence in the user's wishlist.
+         */
+        async function toggleWishlist(product) {
+            if (!loggedInUser || !loggedInUser.email) {
+                showModal("Login Required", "Please log in or sign up to save items to your wishlist.");
+                showAuthModal('login'); 
+                return;
+            }
+            
+            const currentUid = loggedInUser.uid;
+            const productId = product.id;
+            const itemRef = doc(db, WISHLIST_COLLECTION_PATH(currentUid), productId);
+            
+            const isInWishlist = !!wishlistItems[productId];
+
+            try {
+                if (isInWishlist) {
+                    // Remove from wishlist
+                    await deleteDoc(itemRef);
+                    showModal("Removed", `${product.name} removed from your wishlist.`);
+                } else {
+                    // Add to wishlist
+                    // We only need basic product data in the wishlist collection to display the card
+                    await setDoc(itemRef, {
+                        productId: productId,
+                        name: product.name,
+                        image: product.image,
+                        price: product.price,
+                        category: product.category,
+                        addedAt: new Date(),
+                    });
+                    showModal("Added!", `${product.name} added to Wishlist.`);
+                }
+            } catch (error) {
+                console.error("Error toggling wishlist:", error);
+                showModal("Error", `Failed to update wishlist: ${error.message}`);
+            }
+        }
+        
+        /**
+         * Renders the Wishlist view.
+         */
+        function showWishlistView() {
+            resetBodyScroll();
+            
+            if (!loggedInUser || !loggedInUser.uid) {
+                showModal("Login Required", "Please log in to view your wishlist.");
+                const isOpen = mobileSidebar.classList.contains('open');
+                if (isOpen) toggleSidebar();
+                return;
+            }
+
+            clearListeners(); 
+            appState = 'wishlist';
+            
+            const template = document.getElementById('wishlist-view-template');
+            if (!template) return;
+            
+            const clone = document.importNode(template.content, true);
+            mainContentContainer.innerHTML = '';
+            mainContentContainer.appendChild(clone);
+            
+            const isOpen = mobileSidebar.classList.contains('open');
+            if (isOpen) toggleSidebar();
+
+            document.getElementById('back-to-home-btn-wishlist').addEventListener('click', renderHomeView);
+            
+            // Re-attach wishlist listener after clearing (or ensure it's running)
+            listenToWishlist(); 
+            
+            // Initial render
+            renderWishlistItems();
+        }
+        
+        /**
+         * Renders the items currently in the wishlist into the grid.
+         */
+        function renderWishlistItems() {
+            const grid = document.getElementById('wishlist-products-grid');
+            const countTitle = document.getElementById('wishlist-count-title');
+            const emptyMessage = document.getElementById('wishlist-empty-message');
+            
+            if (!grid || !countTitle || !emptyMessage) return;
+
+            const itemsArray = Object.values(wishlistItems);
+            countTitle.textContent = itemsArray.length;
+            
+            if (itemsArray.length === 0) {
+                emptyMessage.classList.remove('hidden');
+                grid.innerHTML = ''; 
+                grid.appendChild(emptyMessage);
+                return;
+            } else {
+                emptyMessage.classList.add('hidden');
+                grid.innerHTML = ''; 
+            }
+            
+            // Map wishlist items to the format expected by renderProducts (product card)
+            const wishlistProducts = itemsArray.map(item => ({
+                id: item.productId,
+                name: item.name,
+                image: item.image,
+                price: item.price,
+                category: item.category,
+                // Add default details for a proper card render, if missing in wishlist doc
+                tag: ['wishlist'], 
+                details: {},
+                stock: 1 // Assume stock > 0 for display, actual stock check is in cart/buy now
+            }));
+            
+            // Reuse the existing product rendering function
+            renderProducts(wishlistProducts, grid, null, "No items found in wishlist.", true);
+            
+            // Update icons based on the current wishlist state
+            updateAllWishlistIcons();
+        }
+        
+        /**
+         * Helper to update the heart icons on all currently displayed product cards.
+         */
+        function updateAllWishlistIcons() {
+             document.querySelectorAll('.wishlist-icon').forEach(iconEl => {
+                const productId = iconEl.getAttribute('data-product-id');
+                const isActive = !!wishlistItems[productId];
+                
+                iconEl.classList.toggle('active', isActive);
+                
+                const heartEmpty = iconEl.querySelector('.ph-heart');
+                const heartFill = iconEl.querySelector('.ph-heart-fill');
+                
+                if (heartEmpty) heartEmpty.style.display = isActive ? 'none' : 'block';
+                if (heartFill) heartFill.style.display = isActive ? 'block' : 'none';
+            });
+        }
+        // --- END Wishlist Logic ---
+
+        // --- Cart Logic ---
 
         /**
          * Attaches a real-time listener to the user's cart in Firestore.
@@ -1863,25 +2052,39 @@
             
             const currentUid = loggedInUser.uid;
 
-            const currentStock = product.stock || 0;
-            const existingItem = cartItems[product.id] || { quantity: 0 };
+            // When adding from wishlist view, we might not have full product data including stock. 
+            // Fetch product data if stock/details are missing.
+            let fullProductData = product;
+            if (product.stock === undefined || product.discountPrice === undefined) {
+                 const productRef = doc(db, PRODUCTS_COLLECTION_PATH, product.id);
+                 const productSnap = await getDoc(productRef);
+                 if (productSnap.exists()) {
+                     fullProductData = { id: productSnap.id, ...productSnap.data() };
+                 } else {
+                     showModal("Error", "Product details not found. Cannot add to cart.");
+                     return;
+                 }
+            }
+            
+            const currentStock = fullProductData.stock || 0;
+            const existingItem = cartItems[fullProductData.id] || { quantity: 0 };
             const newQuantity = Math.max(0, existingItem.quantity + change);
             
             if (newQuantity > currentStock) {
-                 showModal("Out of Stock", `The requested quantity of ${newQuantity} for ${product.name} is not available. Only ${currentStock} units are in stock.`);
+                 showModal("Out of Stock", `The requested quantity of ${newQuantity} for ${fullProductData.name} is not available. Only ${currentStock} units are in stock.`);
                  return;
             }
             
-            const effectivePrice = getEffectivePrice(product);
+            const effectivePrice = getEffectivePrice(fullProductData);
 
             try {
-                const itemRef = doc(db, CART_COLLECTION_PATH(currentUid), product.id);
+                const itemRef = doc(db, CART_COLLECTION_PATH(currentUid), fullProductData.id);
                 
                 if (newQuantity > 0) {
                     await setDoc(itemRef, {
-                        productId: product.id,
-                        name: product.name,
-                        image: product.image,
+                        productId: fullProductData.id,
+                        name: fullProductData.name,
+                        image: fullProductData.image,
                         price: effectivePrice, 
                         quantity: newQuantity,
                         addedAt: new Date(),
@@ -1890,11 +2093,11 @@
                     await new Promise(resolve => setTimeout(resolve, 50));
 
                     if (showModalOnSuccess) {
-                        showModal("Item Added", `${product.name} quantity updated to ${newQuantity} in cart.`);
+                        showModal("Item Added", `${fullProductData.name} quantity updated to ${newQuantity} in cart.`);
                     }
                 } else {
                     await deleteDoc(itemRef);
-                    showModal("Item Removed", `${product.name} removed from cart.`);
+                    showModal("Item Removed", `${fullProductData.name} removed from cart.`);
                 }
                 
                 if (immediateCheckout) {
@@ -1907,10 +2110,14 @@
             }
         }
         
+        // --- Remaining Cart, Checkout, Timer, Carousel, Product, and View functions are fine and kept below for completeness. ---
+        
         /**
          * Renders the cart view.
          */
         function renderCartView(clearFirst = true) {
+            resetBodyScroll(); // Re-enable scroll when changing views
+
             if (clearFirst) {
                 clearListeners();
             }
@@ -2006,6 +2213,7 @@
                             change = -productData.quantity; 
                         }
                         
+                        // We pass the full product data here to allow stock check in updateCart
                         await updateCart(product, change, false, false); 
                         
                         renderCartView(false); 
@@ -2034,6 +2242,8 @@
          * Renders the checkout page.
          */
         function showCheckoutView() {
+            resetBodyScroll(); // Re-enable scroll when changing views
+
             if (!loggedInUser || !loggedInUser.email) {
                 showModal("Login Required", "Please log in to proceed to checkout.");
                 showAuthModal('login');
@@ -2571,6 +2781,7 @@
          * Renders the home view.
          */
         function renderHomeView() {
+            resetBodyScroll(); // Re-enable scroll when changing views
             clearListeners(); 
             appState = 'home';
             currentTag = '';
@@ -2624,12 +2835,19 @@
                     }
                 });
             });
+            
+            // Start listening to cart and wishlist
+            if (loggedInUser && loggedInUser.uid) {
+                listenToCart();
+                listenToWishlist();
+            }
         }
         
         /**
          * Renders the "View More" product listing page.
          */
         function showProductListing(tag) {
+            resetBodyScroll(); // Re-enable scroll when changing views
             clearListeners();
             appState = 'listing';
             currentTag = tag;
@@ -2659,12 +2877,19 @@
             fetchProductsByTag(tag, listingGrid, null, "No products found for this tag.", true); 
             
             document.getElementById('back-to-home-btn-listing').addEventListener('click', renderHomeView);
+            
+            // Start listening to cart and wishlist
+            if (loggedInUser && loggedInUser.uid) {
+                listenToCart();
+                listenToWishlist();
+            }
         }
 
         /**
          * Renders the paginated Category listing page.
          */
         function showCategoryListing(category) {
+            resetBodyScroll(); // Re-enable scroll when changing views
             clearListeners();
             appState = 'category';
             currentCategory = category;
@@ -2696,6 +2921,12 @@
                 currentPage++;
                 fetchProductsByCategory(currentCategory, currentPage, categoryItemsPerPage);
             });
+            
+            // Start listening to cart and wishlist
+            if (loggedInUser && loggedInUser.uid) {
+                listenToCart();
+                listenToWishlist();
+            }
         }
 
         /**
@@ -2708,6 +2939,7 @@
             const unsubscribe = onSnapshot(q, (snapshot) => {
                 const products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderProducts(products, container, viewMoreElement, errorMsg, isListingPage);
+                updateAllWishlistIcons(); // ADDED: Update icons after rendering
             }, (error) => {
                 console.error(`Error fetching products for tag '${tag}':`, error);
                 container.innerHTML = `<p class="col-span-full p-8 text-center text-red-500">${errorMsg} (Error: ${error.message})</p>`;
@@ -2749,6 +2981,7 @@
                 const pagedProducts = products.slice(startIndex, endIndex);
 
                 renderProducts(pagedProducts, grid, null, "No products found in this category.", true);
+                updateAllWishlistIcons(); // ADDED: Update icons after rendering
                 
             }, (error) => {
                 console.error(`Error fetching products for category '${category}':`, error);
@@ -2830,7 +3063,8 @@
 
             productsToShow.forEach(product => {
                 const productEl = document.createElement('div');
-                productEl.className = 'bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden group transition-all duration-300 hover:shadow-md cursor-pointer product-card-animation';
+                // ADDED 'relative' for heart positioning
+                productEl.className = 'bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden group transition-all duration-300 hover:shadow-md cursor-pointer product-card-animation relative';
                 
                 const originalPrice = (product.price || 0).toFixed(2);
                 const discountPrice = (product.discountPrice > 0 ? product.discountPrice : null);
@@ -2838,9 +3072,15 @@
                 const saleEndTime = product.saleEndTime ? (product.saleEndTime.toDate ? product.saleEndTime.toDate() : new Date(product.saleEndTime)) : null;
                 const isSaleActive = saleEndTime && saleEndTime.getTime() > new Date().getTime() && discountPrice;
                 
-                const currentStock = product.stock || 0;
+                // Note: Stock might not be present if coming from the light-weight wishlist doc.
+                // We assume stock check mainly happens during cart/checkout for efficiency.
+                const currentStock = product.stock || 1; 
                 const isOutOfStock = (product.stock || 0) <= 0;
-
+                
+                // Check current wishlist state
+                const isInWishlist = !!wishlistItems[product.id];
+                const heartClass = isInWishlist ? 'active' : '';
+                
                 let priceHtml;
                 if (isSaleActive) {
                     priceHtml = `
@@ -2856,11 +3096,6 @@
                 if (isOutOfStock) {
                      priceHtml = `<p class="text-base sm:text-lg font-bold text-red-600">Out of Stock</p>`;
                 }
-
-                productEl.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    showProductDetail(product.id);
-                });
                 
                 const productTags = Array.isArray(product.tag) ? product.tag : [];
                 const tagHtml = productTags.map(tag => 
@@ -2878,6 +3113,14 @@
                         onerror="this.onerror=null;this.style.display='none';"
                     >
                 ` : '';
+                
+                // ADDED: The Wishlist Heart Icon
+                const wishlistIconHtml = `
+                    <div class="wishlist-icon ${heartClass}" data-product-id="${product.id}">
+                        <i class="ph ph-heart text-2xl" style="display: ${isInWishlist ? 'none' : 'block'};"></i>
+                        <i class="ph ph-heart-fill text-2xl" style="display: ${isInWishlist ? 'block' : 'none'};"></i>
+                    </div>
+                `;
 
 
                 productEl.innerHTML = `
@@ -2889,7 +3132,7 @@
                             onerror="this.onerror=null;this.src='https://placehold.co/400x300/e2e8f0/9ca3af?text=Img+Error';"
                         >
                         ${secondaryImageHtml}
-                    </div>
+                        ${wishlistIconHtml} </div>
                     <div class="p-4">
                         <h3 class="text-sm sm:text-base font-semibold text-gray-800 truncate" title="${product.name}">
                             ${product.name}
@@ -2900,6 +3143,20 @@
                     </div>
                 `;
                 container.appendChild(productEl);
+                
+                // ADDED: Attach Wishlist Handler
+                productEl.querySelector('.wishlist-icon').addEventListener('click', async (e) => {
+                    e.stopPropagation(); // Prevent card click event (detail view)
+                    await toggleWishlist(product);
+                    // The onSnapshot listener handles the visual update of the icon via updateAllWishlistIcons
+                });
+
+                // Attach detail view handler to the card body, not the heart
+                productEl.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showProductDetail(product.id);
+                });
+                
             });
         }
 
@@ -2907,6 +3164,7 @@
          * Renders the product detail page for a given product ID.
          */
         async function showProductDetail(productId) {
+            resetBodyScroll(); // Re-enable scroll when changing views
             clearListeners(); 
             appState = 'detail';
             
@@ -2934,6 +3192,7 @@
                     const unsubscribe = onSnapshot(docRef, (doc) => {
                         if (doc.exists()) {
                             renderDetailPage({ id: doc.id, ...doc.data() });
+                            updateAllWishlistIcons(); // ADDED: Update heart on detail view
                         } else {
                              detailWrapper.innerHTML = '<div class="col-span-full p-8 text-center text-red-500 text-xl">Product not found.</div>';
                         }
@@ -2944,90 +3203,187 @@
                     productListeners.push(unsubscribe);
 
                 } else {
-                    detailWrapper.innerHTML = '<div class="col-span-full p-8 text-center text-red-500 text-xl">Product not found.</div>';
+                    detailWrapper.innerHTML = '<div class-col-span-full p-8 text-center text-red-500 text-xl">Product not found.</div>';
                 }
             } catch (error) {
                 console.error("Error fetching product detail:", error);
                 detailWrapper.innerHTML = `<div class="col-span-full p-8 text-center text-red-500 text-xl">Failed to load product: ${error.message}</div>`;
             }
+            
+            // Start listening to cart and wishlist
+            if (loggedInUser && loggedInUser.uid) {
+                listenToCart();
+                listenToWishlist();
+            }
+        }
+        
+        // --- Spec Generation Helpers (Unchanged) ---
+
+        /**
+         * Helper to create a single row for the specs table.
+         */
+        function createSpecRow(label, value) {
+            if (!value || value.trim() === '') return ''; 
+            return `<tr class="border-b border-gray-100">
+                        <td class="py-2 px-4 bg-gray-50 text-sm font-medium text-gray-600 w-1/3">${label}</td>
+                        <td class="py-2 px-4 text-sm text-gray-800 break-words">${value}</td>
+                    </tr>`;
         }
         
         /**
-         * Generates the HTML for the product detail page, handling discount prices and PKR currency.
+         * Helper to create a section header for the specs table.
+         */
+        function createSpecHeader(title) {
+            return `<tr class="bg-gray-200">
+                        <th class="py-2 px-4 text-left text-sm font-semibold text-gray-700" colspan="2">${title}</th>
+                    </tr>`;
+        }
+        
+        /**
+         * Generates HTML for Laptop/Computer specifications (using flat keys from Admin Dashboard).
+         */
+        function generateLaptopSpecsHtml(specs) {
+            let html = '<table class="w-full border border-gray-200 rounded-lg overflow-hidden table-fixed">';
+            
+            html += createSpecHeader("General");
+            html += createSpecRow("Brand", specs.brand);
+            html += createSpecRow("Warranty", specs.warranty);
+            html += createSpecRow("Condition", specs.condition);
+            html += createSpecRow("Operating System", specs.os);
+            html += createSpecRow("Weight", specs.weight);
+            
+            html += createSpecHeader("Processor");
+            html += createSpecRow("Generation", specs.generation);
+            html += createSpecRow("Processor Type", specs.processorType);
+            html += createSpecRow("Processor Speed", specs.processorSpeed);
+            
+            html += createSpecHeader("Memory & Storage");
+            html += createSpecRow("Installed RAM", specs.ramInstalled);
+            html += createSpecRow("RAM Type", specs.ramType);
+            html += createSpecRow("Hard Drive", specs.hdd);
+            html += createSpecRow("Hard Drive Speed", specs.hddSpeed);
+            html += createSpecRow("SSD", specs.ssd);
+            html += createSpecRow("Storage Type", specs.driveType);
+            html += createSpecRow("Optical Drive", specs.optical);
+            html += createSpecRow("Optical Drive Type", specs.opticalType);
+            
+            html += createSpecHeader("Graphics & Display");
+            html += createSpecRow("Graphics Series", specs.graphicsSeries);
+            html += createSpecRow("Dedicated Graphics", specs.graphicsDedicated);
+            html += createSpecRow("Graphics Memory", specs.graphicsMemory);
+            html += createSpecRow("Graphics Memory Type", specs.graphicsMemoryType);
+            html += createSpecRow("Switchable Graphics", specs.graphicsSwitchable);
+            html += createSpecRow("Graphics Processor", specs.graphicsProcessor);
+            html += createSpecRow("Screen Size", specs.displaySize);
+            html += createSpecRow("Screen Surface", specs.displaySurface);
+            html += createSpecRow("Screen Resolution", specs.displayResolution);
+            html += createSpecRow("Touchscreen", specs.displayTouch);
+            html += createSpecRow("Backlight", specs.displayBacklight);
+            
+            // Assuming the 'Features & Connectivity' data is also flattened in the specs object 
+            // from the Admin Dashboard, use the keys below.
+            html += createSpecHeader("Features & Connectivity");
+            html += createSpecRow("Color", specs.color);
+            html += createSpecRow("Fingerprint Reader", specs.fingerprint);
+            html += createSpecRow("Numeric Keyboard", specs.numKeyboard);
+            html += createSpecRow("Backlit Keyboard", specs.backlitKeyboard);
+            html += createSpecRow("Bluetooth", specs.bluetooth);
+            html += createSpecRow("LAN", specs.lan);
+            html += createSpecRow("Wireless/Wifi", specs.wifi);
+            
+            html += '</table>';
+            return html;
+        }
+
+        /**
+         * Generates HTML for Phone specifications (using flat keys from the Admin Dashboard).
+         */
+        function generatePhoneSpecsHtml(specs) {
+            let html = '<table class="w-full border border-gray-200 rounded-lg overflow-hidden table-fixed">';
+            
+            html += createSpecHeader("📱 Phone Specifications");
+            html += createSpecRow("Brand", specs.brand);
+            html += createSpecRow("Model", specs.model);
+            html += createSpecRow("Display", specs.display);
+            html += createSpecRow("Processor / Chipset", specs.processor);
+            html += createSpecRow("RAM", specs.ram);
+            html += createSpecRow("Storage", specs.storage);
+            html += createSpecRow("Rear Camera", specs.rearCamera);
+            html += createSpecRow("Front Camera", specs.frontCamera);
+            html += createSpecRow("Battery", specs.battery);
+            html += createSpecRow("Operating System", specs.os);
+            html += createSpecRow("SIM Type", specs.simType);
+            html += createSpecRow("Network", specs.network);
+            html += createSpecRow("Build / Body Material", specs.build);
+            html += createSpecRow("Dimensions & Weight", specs.dimensions);
+            html += createSpecRow("Colors Available", specs.colors);
+            html += createSpecRow("Sensors", specs.sensors);
+            html += createSpecRow("Connectivity", specs.connectivity);
+            html += createSpecRow("Audio", specs.audio);
+            html += createSpecRow("Charging", specs.charging);
+            html += createSpecRow("Warranty", specs.warranty);
+
+            html += '</table>';
+            return html;
+        }
+
+        /**
+         * Generates HTML for TV specifications (using flat keys from the Admin Dashboard).
+         */
+        function generateTvSpecsHtml(specs) {
+            let html = '<table class="w-full border border-gray-200 rounded-lg overflow-hidden table-fixed">';
+            
+            html += createSpecHeader("📺 TV Specifications");
+            html += createSpecRow("Brand", specs.brand);
+            html += createSpecRow("Model", specs.model);
+            html += createSpecRow("Display Size", specs.displaySize);
+            html += createSpecRow("Display Type", specs.displayType);
+            html += createSpecRow("Resolution", specs.resolution);
+            html += createSpecRow("Refresh Rate", specs.refreshRate);
+            html += createSpecRow("Processor", specs.processor);
+            html += createSpecRow("RAM", specs.ram);
+            html += createSpecRow("Storage", specs.storage);
+            html += createSpecRow("Operating System / Platform", specs.os);
+            html += createSpecRow("Smart Features", specs.smartFeatures);
+            html += createSpecRow("Connectivity", specs.connectivity);
+            html += createSpecRow("Audio", specs.audio);
+            html += createSpecRow("Ports", specs.ports);
+            html += createSpecRow("Power Consumption", specs.power);
+            html += createSpecRow("Dimensions & Weight", specs.dimensions);
+            html += createSpecRow("Build / Design", specs.build);
+            html += createSpecRow("Remote Type", specs.remote);
+            html += createSpecRow("Warranty", specs.warranty);
+
+            html += '</table>';
+            return html;
+        }
+
+        /**
+         * Renders the final product detail page content.
          */
         function renderDetailPage(product) {
             const details = product.details || {};
             const detailWrapper = document.getElementById('detail-content-wrapper');
             if (!detailWrapper) return; 
             
-            function createSpecRow(label, value) {
-                if (!value || value.trim() === '') return ''; 
-                return `<tr class="border-b border-gray-100">
-                            <td class="py-2 px-4 bg-gray-50 text-sm font-medium text-gray-600 w-1/3">${label}</td>
-                            <td class="py-2 px-4 text-sm text-gray-800 break-words">${value}</td>
-                        </tr>`;
-            }
-            function createSpecHeader(title) {
-                return `<tr class="bg-gray-200">
-                            <th class="py-2 px-4 text-left text-sm font-semibold text-gray-700" colspan="2">${title}</th>
-                        </tr>`;
-            }
-
             const specs = details.specs || {};
-            const proc = specs.processor || {};
-            const mem = specs.memory || {};
-            const graph = specs.graphics || {};
-            const disp = specs.display || {};
-            const feat = specs.features || {};
+            const category = product.category;
+            
+            const isInWishlist = !!wishlistItems[product.id];
+            const heartClass = isInWishlist ? 'active' : '';
 
-            let specsHtml = '<table class="w-full border border-gray-200 rounded-lg overflow-hidden table-fixed">';
-            
-            specsHtml += createSpecHeader("General");
-            specsHtml += createSpecRow("Brand", specs.brand);
-            specsHtml += createSpecRow("Warranty", specs.warranty);
-            specsHtml += createSpecRow("Condition", specs.condition);
-            specsHtml += createSpecRow("Operating System", specs.os);
-            specsHtml += createSpecRow("Weight", specs.weight);
-            
-            specsHtml += createSpecHeader("Processor");
-            specsHtml += createSpecRow("Generation", proc.generation);
-            specsHtml += createSpecRow("Processor Type", proc.type);
-            specsHtml += createSpecRow("Processor Speed", proc.speed);
-            
-            specsHtml += createSpecHeader("Memory & Storage");
-            specsHtml += createSpecRow("Installed RAM", mem.ram);
-            specsHtml += createSpecRow("RAM Type", mem.ramType);
-            specsHtml += createSpecRow("Hard Drive", mem.hdd);
-            specsHtml += createSpecRow("Hard Drive Speed", mem.hddSpeed);
-            specsHtml += createSpecRow("SSD", mem.ssd);
-            specsHtml += createSpecRow("Storage Type", mem.driveType);
-            specsHtml += createSpecRow("Optical Drive", mem.optical);
-            specsHtml += createSpecRow("Optical Drive Type", mem.opticalType);
-            
-            specsHtml += createSpecHeader("Graphics & Display");
-            specsHtml += createSpecRow("Graphics Series", graph.series);
-            specsHtml += createSpecRow("Dedicated Graphics", graph.dedicated);
-            specsHtml += createSpecRow("Graphics Memory", graph.memory);
-            specsHtml += createSpecRow("Graphics Memory Type", graph.memoryType);
-            specsHtml += createSpecRow("Switchable Graphics", graph.switchable);
-            specsHtml += createSpecRow("Graphics Processor", graph.processor);
-            specsHtml += createSpecRow("Screen Size", disp.size);
-            specsHtml += createSpecRow("Screen Surface", disp.surface);
-            specsHtml += createSpecRow("Screen Resolution", disp.resolution);
-            specsHtml += createSpecRow("Touchscreen", disp.touch);
-            specsHtml += createSpecRow("Backlight", disp.backlight);
-            
-            specsHtml += createSpecHeader("Features & Connectivity");
-            specsHtml += createSpecRow("Color", feat.color);
-            specsHtml += createSpecRow("RAM (Form)", feat.ram); 
-            specsHtml += createSpecRow("Fingerprint Reader", feat.fingerprint);
-            specsHtml += createSpecRow("Numeric Keyboard", feat.numKeyboard);
-            specsHtml += createSpecRow("Backlit Keyboard", feat.backlitKeyboard);
-            specsHtml += createSpecRow("Bluetooth", feat.bluetooth);
-            specsHtml += createSpecRow("LAN", feat.lan);
-            specsHtml += createSpecRow("Wireless/Wifi", feat.wifi);
-            
-            specsHtml += '</table>';
+            let specsHtml = '';
+
+            if (['Laptops', 'Computers'].includes(category)) {
+                specsHtml = generateLaptopSpecsHtml(specs);
+            } else if (category === 'Phones') {
+                specsHtml = generatePhoneSpecsHtml(specs);
+            } else if (category === 'TV') {
+                specsHtml = generateTvSpecsHtml(specs);
+            } else {
+                 specsHtml = `<p class="text-red-500">No specific specification template found for category: ${category}</p>`;
+            }
+
                 
             const originalPrice = (product.price || 0).toFixed(2);
             const discountPrice = (product.discountPrice > 0 ? product.discountPrice : null);
@@ -3073,7 +3429,7 @@
 
             detailWrapper.innerHTML = `
                 <div>
-                    <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden shadow-inner mb-4">
+                    <div class="aspect-square bg-gray-100 rounded-lg overflow-hidden shadow-inner mb-4 relative">
                         <img 
                             src="${primaryImage}" 
                             alt="${product.name}" 
@@ -3081,6 +3437,10 @@
                             id="main-detail-image"
                             onerror="this.onerror=null;this.src='https://placehold.co/800x800/e2e8f0/9ca3af?text=Image+Error';"
                         >
+                        <div class="wishlist-icon ${heartClass}" data-product-id="${product.id}">
+                            <i class="ph ph-heart text-2xl" style="display: ${isInWishlist ? 'none' : 'block'};"></i>
+                            <i class="ph ph-heart-fill text-2xl" style="display: ${isInWishlist ? 'block' : 'none'};"></i>
+                        </div>
                     </div>
                     <div id="thumbnail-gallery" class="flex items-center space-x-2">
                         ${thumbnailsHtml}
@@ -3128,6 +3488,13 @@
                 </div>
             `;
             
+            // ADDED: Re-attach wishlist listener to the detail heart icon
+            document.querySelector('.wishlist-icon').addEventListener('click', async (e) => {
+                 e.stopPropagation(); 
+                 await toggleWishlist(product);
+                 // The onSnapshot listener handles the visual update of the icon via updateAllWishlistIcons
+            });
+
             document.getElementById('add-to-cart-btn').addEventListener('click', async (e) => {
                 if (isOutOfStock) return; 
                 
@@ -3204,6 +3571,7 @@
         // --- Page View Functions (Policies, FAQ, About) ---
 
         function renderFaqView() {
+            resetBodyScroll(); // Re-enable scroll when changing views
             clearListeners();
             appState = 'faq';
             
@@ -3234,6 +3602,7 @@
         }
 
         function renderShippingPolicyView() {
+            resetBodyScroll(); // Re-enable scroll when changing views
             clearListeners();
             appState = 'shipping';
             
@@ -3250,6 +3619,7 @@
         }
 
         function renderReturnPolicyView() {
+            resetBodyScroll(); // Re-enable scroll when changing views
             clearListeners();
             appState = 'return';
             
@@ -3266,6 +3636,7 @@
         }
 
         function renderTosView() {
+            resetBodyScroll(); // Re-enable scroll when changing views
             clearListeners();
             appState = 'tos';
             
@@ -3282,6 +3653,7 @@
         }
 
         function renderAboutView() {
+            resetBodyScroll(); // Re-enable scroll when changing views
             clearListeners();
             appState = 'about';
             
@@ -3508,8 +3880,11 @@
 
                     if (user && user.uid) {
                         listenToCart();
+                        listenToWishlist(); // ADDED: Start listening to wishlist
                     } else {
                          cartItemCountEl.textContent = '0';
+                         headerWishlistCountEl.textContent = '0'; // ADDED: Reset wishlist count
+                         sidebarWishlistCountEl.textContent = '0';
                     }
                     
                     if (appState === 'home') {
@@ -3560,10 +3935,23 @@
             e.preventDefault();
             renderCartView();
         });
+        
+        // ADDED: Header Wishlist Link Listener
+        document.getElementById('header-wishlist-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            showWishlistView();
+        });
 
         document.getElementById('sidebar-track-order-link').addEventListener('click', (e) => {
             e.preventDefault();
             showTrackOrderView();
+        });
+        
+        // ADDED: Sidebar Wishlist Link Listener
+        document.getElementById('sidebar-wishlist-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleSidebar(); // Close sidebar first
+            showWishlistView();
         });
         
         document.getElementById('footer-home-link').addEventListener('click', (e) => {
@@ -3605,5 +3993,38 @@
         initializeAppAndAuth();
 
     </script>
+    <script>
+const notificationIcon = document.getElementById('notification-link');
+const notificationCount = document.getElementById('notification-count');
+
+function showNotification(message) {
+  const count = parseInt(localStorage.getItem('notifCount') || '0') + 1;
+  localStorage.setItem('notifCount', count);
+  notificationCount.textContent = count;
+  notificationCount.classList.remove('hidden');
+
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.className = 'fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+window.addEventListener('load', () => {
+  const wishlistSale = localStorage.getItem('wishlistSale');
+  if (wishlistSale === 'true') {
+    showNotification('A product from your wishlist is now on SALE!');
+    localStorage.removeItem('wishlistSale');
+  }
+});
+
+notificationIcon.addEventListener('click', () => {
+  localStorage.setItem('notifCount', '0');
+  notificationCount.textContent = '0';
+  notificationCount.classList.add('hidden');
+  alert('You have no new notifications.');
+});
+</script>
+
 </body>
 </html>
